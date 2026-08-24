@@ -2,6 +2,13 @@
 
 이 문서는 현재 구현된 프로젝트 협업 서비스 API를 Swagger UI에서 순서대로 실행하기 위한 안내서입니다.
 
+이 실습에서는 사용자를 **총 2명 생성**합니다.
+
+- 사용자 1: 프로젝트를 만들고 관리하는 `OWNER`
+- 사용자 2: 프로젝트에 참여하고 작업을 담당하는 `MEMBER`
+
+`POST /api/users`를 한 번만 실행하는 것이 아니라, 서로 다른 이름과 이메일로 **두 번 실행해야 합니다.** 이후 응답에서 받은 두 사용자 ID를 각각 다른 용도로 사용합니다.
+
 ## 1. 접속 주소
 
 - Swagger UI: <http://localhost:8080/swagger-ui/index.html>
@@ -22,18 +29,20 @@
 4. **Execute** 버튼을 누릅니다.
 5. `Server response`의 응답 코드와 `Response body`를 확인합니다.
 
-아래 값을 메모하면서 진행하면 편합니다.
+아래 값은 뒤의 모든 API에서 반복해서 사용하므로 반드시 메모합니다. 표의 예시는 서버를 새로 실행한 직후 순서대로 생성했을 때 흔히 나오는 값이며, Swagger의 **실제 Server response 값이 우선**입니다.
 
-| 이름 | 의미 | 실습 중 기록할 값 |
-| :-- | :-- | :-- |
-| `ownerId` | 프로젝트를 생성할 첫 번째 사용자 ID | |
-| `memberId` | 프로젝트에 추가할 두 번째 사용자 ID | |
-| `projectId` | 생성한 프로젝트 ID | |
-| `taskId` | 생성한 작업 ID | |
+| 이름 | 의미 | 예상 예시 | 실제 응답에서 기록할 값 |
+| :-- | :-- | :-- | :-- |
+| `ownerId` | 첫 번째로 생성한 OWNER 사용자 ID | `1` | |
+| `memberId` | 두 번째로 생성한 MEMBER 사용자 ID | `2` | |
+| `projectId` | OWNER가 생성한 프로젝트 ID | `1` | |
+| `taskId` | 프로젝트에 생성한 작업 ID | `1` | |
 
 `X-Requester-Id`는 현재 요청을 수행하는 사용자의 ID입니다. 인증 기능 대신 이 헤더로 요청자를 전달합니다.
 
-## 3. 권장 실습 순서
+## 3. 전체 실습 순서
+
+아래 단계는 서로 이어지는 하나의 시나리오입니다. 중간 단계를 건너뛰지 말고 1단계부터 순서대로 실행합니다.
 
 ### 1단계: OWNER로 사용할 사용자 생성
 
@@ -46,7 +55,7 @@ Swagger의 **Users**에서 `POST /api/users`를 실행합니다.
 }
 ```
 
-정상 응답 코드는 `201`입니다. 응답의 `id`를 `ownerId`로 기록합니다.
+정상 응답 코드는 `201 Created`입니다. Swagger 위쪽의 **Server response → Response body**에 있는 실제 `id`를 `ownerId`로 기록합니다. 아래쪽 **Responses → Example Value**에 표시되는 `id: 0`은 문서 예시이므로 사용하지 않습니다.
 
 ```json
 {
@@ -58,9 +67,13 @@ Swagger의 **Users**에서 `POST /api/users`를 실행합니다.
 
 위의 `id: 1`은 예시입니다. 실제 응답에 나온 값을 사용해야 합니다.
 
+```text
+ownerId = ______
+```
+
 ### 2단계: MEMBER로 사용할 사용자 생성
 
-같은 `POST /api/users`를 다시 실행합니다.
+같은 `POST /api/users`를 **두 번째로 다시 실행합니다.** 첫 번째 사용자와 별도로 저장되는 두 번째 사용자입니다.
 
 ```json
 {
@@ -69,15 +82,37 @@ Swagger의 **Users**에서 `POST /api/users`를 실행합니다.
 }
 ```
 
-응답의 `id`를 `memberId`로 기록합니다. 이메일은 중복될 수 없으므로 첫 번째 사용자와 다른 이메일을 입력해야 합니다.
+정상 응답 코드는 `201 Created`입니다. 실제 응답은 다음과 같은 형태입니다.
+
+```json
+{
+  "id": 2,
+  "name": "김멤버",
+  "email": "member@example.com"
+}
+```
+
+응답의 실제 `id`를 `memberId`로 기록합니다. 이메일은 중복될 수 없으므로 첫 번째 사용자와 다른 이메일을 입력해야 합니다.
+
+```text
+memberId = ______
+```
+
+이 시점에 H2 데이터베이스에는 다음 두 사용자가 있어야 합니다.
+
+| 구분 | 이름 | 이메일 | 이후 용도 |
+| :-- | :-- | :-- | :-- |
+| 사용자 1 | 이기문 | `owner@example.com` | 프로젝트 생성자 및 OWNER |
+| 사용자 2 | 김멤버 | `member@example.com` | 프로젝트에 추가할 MEMBER 및 작업 담당자 |
 
 ### 3단계: 사용자 조회 확인
 
-`GET /api/users/{userId}`를 실행합니다.
+`GET /api/users/{userId}`를 총 두 번 실행해 두 사용자를 모두 확인합니다.
 
-- `userId`: `ownerId`
+- 첫 번째 실행의 `userId`: `ownerId`
+- 두 번째 실행의 `userId`: `memberId`
 
-응답 코드 `200`과 첫 번째 사용자 정보가 나오면 정상입니다.
+각 실행에서 응답 코드 `200 OK`와 해당 사용자 정보가 나오면 정상입니다.
 
 ### 4단계: 프로젝트 생성
 
@@ -94,7 +129,18 @@ Swagger의 **Projects**에서 `POST /api/projects`를 실행합니다.
 
 정상 응답 코드는 `201`입니다. 응답의 `id`를 `projectId`로 기록합니다.
 
+```text
+projectId = ______
+```
+
 프로젝트를 생성한 사용자는 해당 프로젝트의 `OWNER` 멤버로 자동 등록됩니다.
+
+프로젝트 생성 직후 **Projects**의 `GET /api/projects/{projectId}`도 실행합니다.
+
+- `projectId`: 방금 기록한 `projectId`
+- `X-Requester-Id`: `ownerId`
+
+응답 코드 `200 OK`와 생성한 프로젝트의 이름·설명이 나오면 정상입니다.
 
 ### 5단계: OWNER 자동 등록 확인
 
@@ -123,6 +169,11 @@ Swagger의 **Project Members**에서 `GET /api/projects/{projectId}/members`를 
 
 정상 응답 코드는 `201`입니다. 이후 멤버 목록을 다시 조회하면 OWNER와 MEMBER 두 명이 보여야 합니다.
 
+두 멤버의 의미를 구분해서 확인합니다.
+
+- OWNER 행: `userId`가 `ownerId`, `role`이 `OWNER`
+- MEMBER 행: `userId`가 `memberId`, `role`이 `MEMBER`
+
 ### 7단계: 작업 생성
 
 Swagger의 **Tasks**에서 `POST /api/projects/{projectId}/tasks`를 실행합니다.
@@ -142,6 +193,10 @@ Swagger의 **Tasks**에서 `POST /api/projects/{projectId}/tasks`를 실행합�
 `assigneeId`의 `2`는 실제 `memberId`로 바꿉니다. 작업 상태에는 `TODO`, `IN_PROGRESS`, `DONE`을 사용할 수 있습니다.
 
 정상 응답 코드는 `201`입니다. 응답의 `id`를 `taskId`로 기록합니다.
+
+```text
+taskId = ______
+```
 
 ### 8단계: 작업 목록과 상세 조회
 
@@ -183,13 +238,16 @@ Swagger의 **Tasks**에서 `POST /api/projects/{projectId}/tasks`를 실행합�
 
 Swagger의 **Projects**에서 `GET /api/projects`를 실행합니다.
 
-- `X-Requester-Id`: `ownerId`
+- 첫 번째 실행의 `X-Requester-Id`: `ownerId`
+- 두 번째 실행의 `X-Requester-Id`: `memberId`
 
-생성한 프로젝트가 목록에 나오면 정상입니다.
+OWNER와 MEMBER 모두 자신이 참여한 동일한 프로젝트를 목록에서 확인할 수 있어야 합니다.
 
-## 4. 추가로 시험할 API
+## 4. 이어서 모든 수정·삭제 API 확인
 
-### 멤버 역할을 ADMIN으로 변경
+여기부터도 선택 사항이 아닙니다. 현재 구현된 모든 API 흐름을 확인하려면 순서대로 계속 실행합니다.
+
+### 11단계: MEMBER 역할을 ADMIN으로 변경
 
 `PATCH /api/projects/{projectId}/members/{userId}`를 실행합니다.
 
@@ -203,7 +261,9 @@ Swagger의 **Projects**에서 `GET /api/projects`를 실행합니다.
 }
 ```
 
-### 프로젝트 수정
+응답 코드 `200 OK`와 `role: "ADMIN"`을 확인합니다. 이어서 멤버 목록을 다시 조회해 두 번째 사용자의 역할도 `ADMIN`으로 바뀌었는지 확인합니다.
+
+### 12단계: 프로젝트 수정하고 다시 조회
 
 `PUT /api/projects/{projectId}`를 실행합니다.
 
@@ -217,17 +277,109 @@ Swagger의 **Projects**에서 `GET /api/projects`를 실행합니다.
 }
 ```
 
-### 삭제 API
+응답 코드 `200 OK`와 수정된 이름을 확인합니다. 이어서 `GET /api/projects/{projectId}`를 다시 실행해 변경 내용이 저장됐는지 확인합니다.
 
-삭제는 다른 실습을 모두 마친 뒤 다음 순서로 실행하는 것이 좋습니다.
+- `projectId`: `projectId`
+- `X-Requester-Id`: `ownerId`
 
-1. `DELETE /api/projects/{projectId}/tasks/{taskId}` — 작업 삭제
-2. `DELETE /api/projects/{projectId}/members/{userId}` — MEMBER 삭제
-3. `DELETE /api/projects/{projectId}` — 프로젝트 삭제
+### 13단계: 애플리케이션 상태 API 확인
 
-삭제 성공 응답은 본문이 없는 `204 No Content`입니다.
+Swagger의 **System**에서 `GET /api/health`를 실행합니다. 이 API에는 ID나 Request body가 필요하지 않습니다.
 
-## 5. 자주 발생하는 문제
+```json
+{
+  "status": "UP",
+  "application": "project-collab"
+}
+```
+
+응답 코드 `200 OK`와 `status: "UP"`이 나오면 서버가 정상입니다.
+
+### 14단계: 작업 삭제하고 삭제 결과 확인
+
+다른 작업 실습을 모두 마친 뒤 `DELETE /api/projects/{projectId}/tasks/{taskId}`를 실행합니다.
+
+- `projectId`: `projectId`
+- `taskId`: `taskId`
+- `X-Requester-Id`: `memberId`
+
+성공 응답은 본문이 없는 `204 No Content`입니다.
+
+삭제 후 `GET /api/projects/{projectId}/tasks/{taskId}`를 같은 ID로 다시 실행합니다.
+
+- 예상 결과: `404 Not Found`
+- 의미: 삭제된 작업은 더 이상 조회되지 않음
+
+### 15단계: 두 번째 프로젝트 멤버 제거
+
+`DELETE /api/projects/{projectId}/members/{userId}`를 실행합니다.
+
+- `projectId`: `projectId`
+- `userId`: `memberId`
+- `X-Requester-Id`: `ownerId`
+
+성공 응답은 본문이 없는 `204 No Content`입니다.
+
+삭제 후 `GET /api/projects/{projectId}/members`를 실행합니다.
+
+- `projectId`: `projectId`
+- `X-Requester-Id`: `ownerId`
+- 예상 결과: OWNER 한 명만 남은 목록
+
+여기서 삭제되는 것은 사용자가 아니라 **프로젝트 참여 관계인 ProjectMember**입니다. 사용자 2의 User 데이터는 그대로 남아 있습니다.
+
+### 16단계: 프로젝트 삭제
+
+마지막으로 `DELETE /api/projects/{projectId}`를 실행합니다.
+
+- `projectId`: `projectId`
+- `X-Requester-Id`: `ownerId`
+
+프로젝트 삭제는 OWNER가 수행합니다. 성공 응답은 본문이 없는 `204 No Content`입니다.
+
+삭제 후 `GET /api/projects/{projectId}`를 같은 ID로 다시 실행합니다.
+
+- `projectId`: 삭제한 `projectId`
+- `X-Requester-Id`: `ownerId`
+- 예상 결과: `404 Not Found`
+
+이어서 `GET /api/projects`를 `ownerId`로 실행했을 때 삭제한 프로젝트가 목록에 없어야 합니다.
+
+### 17단계: 사용자 데이터가 남아 있는지 확인
+
+프로젝트를 삭제해도 사용자 자체가 삭제되는 것은 아닙니다. **Users**에서 `GET /api/users/{userId}`를 두 번 실행합니다.
+
+- 첫 번째 `userId`: `ownerId`
+- 두 번째 `userId`: `memberId`
+
+두 사용자 모두 `200 OK`로 조회되면 전체 실습이 끝난 것입니다.
+
+## 5. 전체 API 실행 체크리스트
+
+완료한 항목에 체크합니다.
+
+- [ ] `POST /api/users` — OWNER 사용자 생성
+- [ ] `POST /api/users` — MEMBER 사용자 생성
+- [ ] `GET /api/users/{userId}` — 두 사용자 조회
+- [ ] `POST /api/projects` — 프로젝트 생성
+- [ ] `GET /api/projects` — OWNER와 MEMBER의 참여 프로젝트 목록 조회
+- [ ] `GET /api/projects/{projectId}` — 프로젝트 상세 조회
+- [ ] `PUT /api/projects/{projectId}` — 프로젝트 수정
+- [ ] `GET /api/projects/{projectId}/members` — OWNER 자동 등록과 멤버 목록 확인
+- [ ] `POST /api/projects/{projectId}/members` — 두 번째 사용자 추가
+- [ ] `PATCH /api/projects/{projectId}/members/{userId}` — 역할 변경
+- [ ] `POST /api/projects/{projectId}/tasks` — MEMBER가 담당자인 작업 생성
+- [ ] `GET /api/projects/{projectId}/tasks` — 작업 목록 조회
+- [ ] `GET /api/projects/{projectId}/tasks/{taskId}` — 작업 상세 조회
+- [ ] `PUT /api/projects/{projectId}/tasks/{taskId}` — 담당자가 작업 수정
+- [ ] `GET /api/health` — 서버 상태 확인
+- [ ] `DELETE /api/projects/{projectId}/tasks/{taskId}` — 작업 삭제
+- [ ] `DELETE /api/projects/{projectId}/members/{userId}` — 두 번째 멤버 제거
+- [ ] `DELETE /api/projects/{projectId}` — 프로젝트 삭제
+- [ ] 삭제 후 작업과 프로젝트의 `404` 응답 확인
+- [ ] 프로젝트 삭제 후에도 두 사용자 조회 가능 여부 확인
+
+## 6. 자주 발생하는 문제
 
 ### `X-Requester-Id` 입력란이 비어 있음
 
@@ -248,7 +400,7 @@ Swagger의 **Projects**에서 `GET /api/projects`를 실행합니다.
 - 상태: `TODO`, `IN_PROGRESS`, `DONE`
 - 역할: `OWNER`, `ADMIN`, `MEMBER`
 
-## 6. H2 Console 접속 정보
+## 7. H2 Console 접속 정보
 
 H2 Console 로그인 화면에는 다음 값을 입력합니다.
 
@@ -261,6 +413,6 @@ H2 Console 로그인 화면에는 다음 값을 입력합니다.
 
 기본값인 `jdbc:h2:mem:testdb`를 사용하면 현재 애플리케이션 데이터베이스에 연결되지 않습니다.
 
-## 7. 현재 구현 단계 참고
+## 8. 현재 구현 단계 참고
 
 이 가이드는 현재 2단계의 기본 CRUD 흐름을 확인하기 위한 것입니다. 권한 규칙의 완전한 적용, 작업 검색·상태 필터·페이징, 동시 수정 제어는 다음 구현 단계에서 추가 검증해야 합니다.
