@@ -225,6 +225,17 @@ class StageTwoApiIntegrationTest {
                 .andExpect(jsonPath("$.path").value("/api/projects"));
     }
 
+    @Test
+    void exposesOpenApiTagsInUserWorkflowOrder() throws Exception {
+        mockMvc.perform(get("/v3/api-docs"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.tags[0].name").value("Users"))
+                .andExpect(jsonPath("$.tags[1].name").value("Projects"))
+                .andExpect(jsonPath("$.tags[2].name").value("Project Members"))
+                .andExpect(jsonPath("$.tags[3].name").value("Tasks"))
+                .andExpect(jsonPath("$.tags[4].name").value("System"));
+    }
+
     private long createUser(String name, String email) throws Exception {
         String response = mockMvc.perform(post("/api/users")
                         .contentType(MediaType.APPLICATION_JSON)
