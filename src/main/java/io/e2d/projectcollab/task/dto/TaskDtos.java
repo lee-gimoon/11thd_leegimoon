@@ -4,9 +4,12 @@ import io.e2d.projectcollab.task.domain.Task;
 import io.e2d.projectcollab.task.domain.TaskStatus;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
+import org.springframework.data.domain.Page;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 public final class TaskDtos {
 
@@ -38,7 +41,11 @@ public final class TaskDtos {
             @NotNull(message = "작업 상태는 필수입니다.")
             TaskStatus status,
 
-            Long assigneeId
+            Long assigneeId,
+
+            @NotNull(message = "작업 버전은 필수입니다.")
+            @PositiveOrZero(message = "작업 버전은 0 이상이어야 합니다.")
+            Long version
     ) {
     }
 
@@ -50,6 +57,7 @@ public final class TaskDtos {
             TaskStatus status,
             Long assigneeId,
             String assigneeName,
+            Long version,
             LocalDateTime createdAt,
             LocalDateTime updatedAt
     ) {
@@ -67,8 +75,37 @@ public final class TaskDtos {
                     task.getStatus(),
                     assigneeId,
                     assigneeName,
+                    task.getVersion(),
                     task.getCreatedAt(),
                     task.getUpdatedAt()
+            );
+        }
+    }
+
+    public record TaskPageResponse(
+            List<TaskResponse> content,
+            int page,
+            int size,
+            long totalElements,
+            int totalPages,
+            boolean first,
+            boolean last,
+            boolean hasNext,
+            boolean hasPrevious
+    ) {
+        public static TaskPageResponse from(Page<Task> taskPage) {
+            return new TaskPageResponse(
+                    taskPage.getContent().stream()
+                            .map(TaskResponse::from)
+                            .toList(),
+                    taskPage.getNumber(),
+                    taskPage.getSize(),
+                    taskPage.getTotalElements(),
+                    taskPage.getTotalPages(),
+                    taskPage.isFirst(),
+                    taskPage.isLast(),
+                    taskPage.hasNext(),
+                    taskPage.hasPrevious()
             );
         }
     }

@@ -26,17 +26,20 @@ public class ProjectService {
     private final ProjectMemberRepository projectMemberRepository;
     private final TaskRepository taskRepository;
     private final UserService userService;
+    private final ProjectAuthorizationService authorizationService;
 
     public ProjectService(
             ProjectRepository projectRepository,
             ProjectMemberRepository projectMemberRepository,
             TaskRepository taskRepository,
-            UserService userService
+            UserService userService,
+            ProjectAuthorizationService authorizationService
     ) {
         this.projectRepository = projectRepository;
         this.projectMemberRepository = projectMemberRepository;
         this.taskRepository = taskRepository;
         this.userService = userService;
+        this.authorizationService = authorizationService;
     }
 
     @Transactional
@@ -59,22 +62,23 @@ public class ProjectService {
     }
 
     public ProjectResponse get(Long requesterId, Long projectId) {
-        userService.getEntity(requesterId);
-        return ProjectResponse.from(getEntity(projectId));
+        Project project = getEntity(projectId);
+        authorizationService.requireMember(projectId, requesterId);
+        return ProjectResponse.from(project);
     }
 
     @Transactional
     public ProjectResponse update(Long requesterId, Long projectId, UpdateProjectRequest request) {
-        userService.getEntity(requesterId);
         Project project = getEntity(projectId);
+        authorizationService.requireManager(projectId, requesterId);
         project.update(request.name().trim(), normalizeDescription(request.description()));
         return ProjectResponse.from(project);
     }
 
     @Transactional
     public void delete(Long requesterId, Long projectId) {
-        userService.getEntity(requesterId);
         Project project = getEntity(projectId);
+        authorizationService.requireOwner(projectId, requesterId);
         taskRepository.deleteAllByProjectId(projectId);
         projectMemberRepository.deleteAllByProjectId(projectId);
         projectRepository.delete(project);

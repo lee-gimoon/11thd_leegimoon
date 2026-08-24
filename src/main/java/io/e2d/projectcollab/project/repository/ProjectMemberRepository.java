@@ -1,6 +1,7 @@
 package io.e2d.projectcollab.project.repository;
 
 import io.e2d.projectcollab.project.domain.ProjectMember;
+import io.e2d.projectcollab.project.domain.ProjectRole;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -13,6 +14,8 @@ public interface ProjectMemberRepository extends JpaRepository<ProjectMember, Lo
     boolean existsByProjectIdAndUserId(Long projectId, Long userId);
 
     Optional<ProjectMember> findByProjectIdAndUserId(Long projectId, Long userId);
+
+    long countByProjectIdAndRole(Long projectId, ProjectRole role);
 
     @Query("""
             select pm

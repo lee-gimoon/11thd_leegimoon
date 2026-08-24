@@ -87,6 +87,7 @@ class StageTwoApiIntegrationTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.status").value("TODO"))
                 .andExpect(jsonPath("$.assigneeId").value(memberId))
+                .andExpect(jsonPath("$.version").value(0))
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
@@ -95,8 +96,9 @@ class StageTwoApiIntegrationTest {
         mockMvc.perform(get("/api/projects/{projectId}/tasks", projectId)
                         .header(REQUESTER_ID, ownerId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].id").value(taskId));
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].id").value(taskId))
+                .andExpect(jsonPath("$.totalElements").value(1));
 
         mockMvc.perform(put("/api/projects/{projectId}/tasks/{taskId}", projectId, taskId)
                         .header(REQUESTER_ID, ownerId)
@@ -106,13 +108,15 @@ class StageTwoApiIntegrationTest {
                                   "title": "REST API 구현 완료",
                                   "description": "기본 CRUD 검증 완료",
                                   "status": "DONE",
-                                  "assigneeId": null
+                                  "assigneeId": null,
+                                  "version": 0
                                 }
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.title").value("REST API 구현 완료"))
                 .andExpect(jsonPath("$.status").value("DONE"))
-                .andExpect(jsonPath("$.assigneeId").doesNotExist());
+                .andExpect(jsonPath("$.assigneeId").doesNotExist())
+                .andExpect(jsonPath("$.version").value(1));
 
         mockMvc.perform(get("/api/projects/{projectId}/tasks/{taskId}", projectId, taskId)
                         .header(REQUESTER_ID, ownerId))

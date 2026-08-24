@@ -14,6 +14,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 
 @Entity
 @Table(name = "tasks")
@@ -40,6 +41,10 @@ public class Task extends BaseTimeEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assignee_id")
     private User assignee;
+
+    @Version
+    @Column(nullable = false)
+    private Long version;
 
     protected Task() {
     }
@@ -102,5 +107,9 @@ public class Task extends BaseTimeEntity {
 
     public User getAssignee() {
         return assignee;
+    }
+
+    public Long getVersion() {
+        return version;
     }
 }

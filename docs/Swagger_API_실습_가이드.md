@@ -210,14 +210,57 @@ taskId = ______
 
 - `projectId`: `projectId`
 - `X-Requester-Id`: `ownerId`
+- `keyword`: 비워 둠 — 입력하면 제목과 설명에서 검색
+- `status`: 비워 둠 — `TODO`, `IN_PROGRESS`, `DONE` 중 하나로 필터 가능
+- `page`: `0` — 첫 페이지는 0부터 시작
+- `size`: `20` — 한 페이지의 작업 수, 최대 100
 
-방금 만든 작업이 목록에 보이면 정상입니다.
+작업 목록은 배열 자체가 아니라 페이지 정보와 함께 반환됩니다. 방금 만든 작업이 `content` 안에 보이면 정상입니다.
+
+```json
+{
+  "content": [
+    {
+      "id": 1,
+      "projectId": 1,
+      "title": "REST API 구현",
+      "status": "TODO",
+      "assigneeId": 2,
+      "assigneeName": "김멤버",
+      "version": 0
+    }
+  ],
+  "page": 0,
+  "size": 20,
+  "totalElements": 1,
+  "totalPages": 1,
+  "first": true,
+  "last": true,
+  "hasNext": false,
+  "hasPrevious": false
+}
+```
+
+추가로 다음 조건도 시험할 수 있습니다.
+
+- `keyword=API`: 제목 또는 설명에 API가 포함된 작업 검색
+- `status=TODO`: TODO 상태 작업만 조회
+- `keyword=API`, `status=TODO`: 두 조건을 모두 만족하는 작업 조회
+- `page=1`, `size=2`: 두 번째 페이지를 두 건씩 조회
+
+검색 결과는 현재 `projectId`의 작업만 포함하며 최신 생성순으로 정렬됩니다.
 
 이어서 `GET /api/projects/{projectId}/tasks/{taskId}`를 실행합니다.
 
 - `projectId`: `projectId`
 - `taskId`: `taskId`
 - `X-Requester-Id`: `ownerId`
+
+응답의 `version`을 기록합니다. 작업 생성 직후라면 보통 `0`이지만 반드시 실제 응답 값을 사용합니다.
+
+```text
+현재 작업 version = ______
+```
 
 ### 8단계: 작업 수정
 
@@ -232,13 +275,28 @@ taskId = ______
   "title": "REST API 구현",
   "description": "기본 CRUD 구현을 완료한다",
   "status": "IN_PROGRESS",
-  "assigneeId": 2
+  "assigneeId": 2,
+  "version": 0
 }
 ```
 
-`assigneeId`는 실제 `memberId`로 바꿉니다. 이 API는 `PUT`이므로 제목과 상태를 포함한 전체 수정 내용을 보내야 합니다.
+`assigneeId`는 실제 `memberId`, `version`은 바로 앞에서 조회한 실제 버전으로 바꿉니다. 이 API는 `PUT`이므로 제목과 상태를 포함한 전체 수정 내용을 보내야 합니다.
 
-응답의 `status`가 `IN_PROGRESS`로 바뀌었는지 확인합니다.
+응답의 `status`가 `IN_PROGRESS`로 바뀌고 `version`이 이전 값보다 1 증가했는지 확인합니다.
+
+#### 오래된 버전 충돌 확인
+
+방금 성공한 수정 요청을 다시 실행하되 `version`은 증가하기 전의 오래된 값인 `0`을 그대로 사용합니다. 그러면 두 번째 요청은 저장되지 않고 다음과 같이 `409 Conflict`가 반환되어야 합니다.
+
+```json
+{
+  "code": "TASK_VERSION_CONFLICT",
+  "message": "다른 사용자가 작업을 먼저 수정했습니다. 최신 내용을 다시 조회해 주세요.",
+  "status": 409
+}
+```
+
+다시 수정하려면 `GET /api/projects/{projectId}/tasks/{taskId}`로 최신 작업을 조회하고, 새 `version`을 수정 요청에 넣어야 합니다.
 
 ### 9단계: 내 프로젝트 목록 조회
 
@@ -399,12 +457,26 @@ Swagger의 **System**에서 `GET /api/health`를 실행합니다. 이 API에는 
 
 이미 사용 중인 이메일로 사용자를 만들었거나, 같은 사용자를 프로젝트에 두 번 추가했을 가능성이 큽니다.
 
+마지막 OWNER의 역할을 변경하거나 프로젝트에서 제거하려 해도 `LAST_OWNER_REQUIRED` 코드와 함께 `409`가 반환됩니다. 프로젝트에는 항상 최소 한 명의 OWNER가 있어야 합니다.
+
+작업을 조회했을 때보다 DB 버전이 먼저 증가한 경우에는 `TASK_VERSION_CONFLICT`가 반환됩니다. 최신 작업을 다시 조회한 뒤 새 버전으로 수정해야 합니다.
+
+### `403 Forbidden`
+
+`X-Requester-Id`의 사용자가 프로젝트에 속하지 않았거나 요청한 기능을 수행할 역할이 없는 경우입니다. 응답의 `code`로 원인을 구분합니다.
+
+- `PROJECT_ACCESS_DENIED`: 프로젝트 비멤버
+- `PROJECT_PERMISSION_DENIED`: 프로젝트 멤버이지만 OWNER·ADMIN 등 필요한 역할이 없음
+- `TASK_PERMISSION_DENIED`: 작업 담당자 또는 OWNER·ADMIN이 아니어서 수정·삭제할 수 없음
+
 ### `400 Bad Request`
 
 필수 필드가 비어 있거나 이메일·상태·역할 값의 형식이 잘못된 경우입니다. 상태와 역할은 아래 대문자 값만 사용합니다.
 
 - 상태: `TODO`, `IN_PROGRESS`, `DONE`
 - 역할: `OWNER`, `ADMIN`, `MEMBER`
+
+작업 목록에서 `page`가 음수이거나 `size`가 1 미만 또는 100 초과이면 `INVALID_PAGINATION` 코드가 반환됩니다.
 
 ## 7. H2 Console 접속 정보
 
@@ -419,6 +491,22 @@ H2 Console 로그인 화면에는 다음 값을 입력합니다.
 
 기본값인 `jdbc:h2:mem:testdb`를 사용하면 현재 애플리케이션 데이터베이스에 연결되지 않습니다.
 
-## 8. 현재 구현 단계 참고
+## 8. 현재 구현 및 검증 범위
 
-이 가이드는 현재 2단계의 기본 CRUD 흐름을 확인하기 위한 것입니다. 권한 규칙의 완전한 적용, 작업 검색·상태 필터·페이징, 동시 수정 제어는 다음 구현 단계에서 추가 검증해야 합니다.
+기본 CRUD, 프로젝트 역할 권한, 작업 검색·필터·페이징과 동시 수정 제어를 구현하고 자동 테스트와 실제 HTTP 실행 검증까지 완료했습니다.
+
+- 프로젝트 비멤버의 모든 프로젝트·멤버·작업 접근 차단
+- 프로젝트 수정은 OWNER·ADMIN, 삭제는 OWNER만 허용
+- 멤버 관리는 OWNER·ADMIN만 허용
+- 프로젝트에 최소 한 명의 OWNER 유지
+- 작업 생성·조회는 프로젝트 멤버 전원에게 허용
+- 작업 수정·삭제는 담당자 또는 OWNER·ADMIN만 허용
+- 작업 담당자는 같은 프로젝트의 멤버만 지정 가능
+- 담당 중인 멤버를 제거하면 해당 프로젝트 작업의 담당자는 미할당으로 변경
+- 작업 제목·설명 키워드 검색과 상태 필터 지원
+- 0부터 시작하는 페이지 조회, 최대 페이지 크기 100
+- 최신 생성순과 ID 역순을 함께 사용해 안정적인 정렬 보장
+- Task의 JPA `@Version`과 수정 요청의 버전 값으로 오래된 변경 차단
+- 실제 동시 수정 또는 오래된 버전 요청에 `409 TASK_VERSION_CONFLICT` 반환
+
+동시성 처리의 SQL 동작 원리는 [작업 동시성 문제 해결 방법](./작업_동시성_문제_해결_방법.md)에서 확인할 수 있습니다.

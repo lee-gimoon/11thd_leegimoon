@@ -1,9 +1,11 @@
 package io.e2d.projectcollab.common.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.persistence.OptimisticLockException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -75,6 +77,20 @@ public class GlobalExceptionHandler {
             HttpServletRequest request
     ) {
         ErrorCode errorCode = ErrorCode.DATA_INTEGRITY_VIOLATION;
+        return ResponseEntity
+                .status(errorCode.getStatus())
+                .body(ApiErrorResponse.of(errorCode, request.getRequestURI(), Map.of()));
+    }
+
+    @ExceptionHandler({
+            ObjectOptimisticLockingFailureException.class,
+            OptimisticLockException.class
+    })
+    public ResponseEntity<ApiErrorResponse> handleOptimisticLock(
+            Exception exception,
+            HttpServletRequest request
+    ) {
+        ErrorCode errorCode = ErrorCode.TASK_VERSION_CONFLICT;
         return ResponseEntity
                 .status(errorCode.getStatus())
                 .body(ApiErrorResponse.of(errorCode, request.getRequestURI(), Map.of()));
