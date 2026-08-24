@@ -44,7 +44,11 @@
 
 아래 단계는 서로 이어지는 하나의 시나리오입니다. 중간 단계를 건너뛰지 말고 1단계부터 순서대로 실행합니다.
 
-### 1단계: OWNER로 사용할 사용자 생성
+### 1단계: OWNER와 MEMBER 사용자 2명 생성
+
+사용자 2명 생성은 하나의 필수 준비 단계입니다. **Users**의 `POST /api/users`를 서로 다른 정보로 두 번 실행합니다.
+
+#### 1-1. OWNER로 사용할 첫 번째 사용자 생성
 
 Swagger의 **Users**에서 `POST /api/users`를 실행합니다.
 
@@ -71,7 +75,7 @@ Swagger의 **Users**에서 `POST /api/users`를 실행합니다.
 ownerId = ______
 ```
 
-### 2단계: MEMBER로 사용할 사용자 생성
+#### 1-2. MEMBER로 사용할 두 번째 사용자 생성
 
 같은 `POST /api/users`를 **두 번째로 다시 실행합니다.** 첫 번째 사용자와 별도로 저장되는 두 번째 사용자입니다.
 
@@ -105,7 +109,9 @@ memberId = ______
 | 사용자 1 | 이기문 | `owner@example.com` | 프로젝트 생성자 및 OWNER |
 | 사용자 2 | 김멤버 | `member@example.com` | 프로젝트에 추가할 MEMBER 및 작업 담당자 |
 
-### 3단계: 사용자 조회 확인
+두 응답에서 `ownerId`와 `memberId`를 모두 기록해야 1단계가 완료됩니다.
+
+### 2단계: 사용자 조회 확인
 
 `GET /api/users/{userId}`를 총 두 번 실행해 두 사용자를 모두 확인합니다.
 
@@ -114,7 +120,7 @@ memberId = ______
 
 각 실행에서 응답 코드 `200 OK`와 해당 사용자 정보가 나오면 정상입니다.
 
-### 4단계: 프로젝트 생성
+### 3단계: 프로젝트 생성
 
 Swagger의 **Projects**에서 `POST /api/projects`를 실행합니다.
 
@@ -142,7 +148,7 @@ projectId = ______
 
 응답 코드 `200 OK`와 생성한 프로젝트의 이름·설명이 나오면 정상입니다.
 
-### 5단계: OWNER 자동 등록 확인
+### 4단계: OWNER 자동 등록 확인
 
 Swagger의 **Project Members**에서 `GET /api/projects/{projectId}/members`를 실행합니다.
 
@@ -151,7 +157,7 @@ Swagger의 **Project Members**에서 `GET /api/projects/{projectId}/members`를 
 
 목록에 `userId`가 `ownerId`이고 `role`이 `OWNER`인 멤버가 있으면 정상입니다.
 
-### 6단계: 두 번째 사용자를 프로젝트에 추가
+### 5단계: 두 번째 사용자를 프로젝트에 추가
 
 `POST /api/projects/{projectId}/members`를 실행합니다.
 
@@ -174,7 +180,7 @@ Swagger의 **Project Members**에서 `GET /api/projects/{projectId}/members`를 
 - OWNER 행: `userId`가 `ownerId`, `role`이 `OWNER`
 - MEMBER 행: `userId`가 `memberId`, `role`이 `MEMBER`
 
-### 7단계: 작업 생성
+### 6단계: 작업 생성
 
 Swagger의 **Tasks**에서 `POST /api/projects/{projectId}/tasks`를 실행합니다.
 
@@ -198,7 +204,7 @@ Swagger의 **Tasks**에서 `POST /api/projects/{projectId}/tasks`를 실행합�
 taskId = ______
 ```
 
-### 8단계: 작업 목록과 상세 조회
+### 7단계: 작업 목록과 상세 조회
 
 먼저 `GET /api/projects/{projectId}/tasks`를 실행합니다.
 
@@ -213,7 +219,7 @@ taskId = ______
 - `taskId`: `taskId`
 - `X-Requester-Id`: `ownerId`
 
-### 9단계: 작업 수정
+### 8단계: 작업 수정
 
 `PUT /api/projects/{projectId}/tasks/{taskId}`를 실행합니다.
 
@@ -234,7 +240,7 @@ taskId = ______
 
 응답의 `status`가 `IN_PROGRESS`로 바뀌었는지 확인합니다.
 
-### 10단계: 내 프로젝트 목록 조회
+### 9단계: 내 프로젝트 목록 조회
 
 Swagger의 **Projects**에서 `GET /api/projects`를 실행합니다.
 
@@ -247,7 +253,7 @@ OWNER와 MEMBER 모두 자신이 참여한 동일한 프로젝트를 목록에�
 
 여기부터도 선택 사항이 아닙니다. 현재 구현된 모든 API 흐름을 확인하려면 순서대로 계속 실행합니다.
 
-### 11단계: MEMBER 역할을 ADMIN으로 변경
+### 10단계: MEMBER 역할을 ADMIN으로 변경
 
 `PATCH /api/projects/{projectId}/members/{userId}`를 실행합니다.
 
@@ -263,7 +269,7 @@ OWNER와 MEMBER 모두 자신이 참여한 동일한 프로젝트를 목록에�
 
 응답 코드 `200 OK`와 `role: "ADMIN"`을 확인합니다. 이어서 멤버 목록을 다시 조회해 두 번째 사용자의 역할도 `ADMIN`으로 바뀌었는지 확인합니다.
 
-### 12단계: 프로젝트 수정하고 다시 조회
+### 11단계: 프로젝트 수정하고 다시 조회
 
 `PUT /api/projects/{projectId}`를 실행합니다.
 
@@ -282,7 +288,7 @@ OWNER와 MEMBER 모두 자신이 참여한 동일한 프로젝트를 목록에�
 - `projectId`: `projectId`
 - `X-Requester-Id`: `ownerId`
 
-### 13단계: 애플리케이션 상태 API 확인
+### 12단계: 애플리케이션 상태 API 확인
 
 Swagger의 **System**에서 `GET /api/health`를 실행합니다. 이 API에는 ID나 Request body가 필요하지 않습니다.
 
@@ -295,7 +301,7 @@ Swagger의 **System**에서 `GET /api/health`를 실행합니다. 이 API에는 
 
 응답 코드 `200 OK`와 `status: "UP"`이 나오면 서버가 정상입니다.
 
-### 14단계: 작업 삭제하고 삭제 결과 확인
+### 13단계: 작업 삭제하고 삭제 결과 확인
 
 다른 작업 실습을 모두 마친 뒤 `DELETE /api/projects/{projectId}/tasks/{taskId}`를 실행합니다.
 
@@ -310,7 +316,7 @@ Swagger의 **System**에서 `GET /api/health`를 실행합니다. 이 API에는 
 - 예상 결과: `404 Not Found`
 - 의미: 삭제된 작업은 더 이상 조회되지 않음
 
-### 15단계: 두 번째 프로젝트 멤버 제거
+### 14단계: 두 번째 프로젝트 멤버 제거
 
 `DELETE /api/projects/{projectId}/members/{userId}`를 실행합니다.
 
@@ -328,7 +334,7 @@ Swagger의 **System**에서 `GET /api/health`를 실행합니다. 이 API에는 
 
 여기서 삭제되는 것은 사용자가 아니라 **프로젝트 참여 관계인 ProjectMember**입니다. 사용자 2의 User 데이터는 그대로 남아 있습니다.
 
-### 16단계: 프로젝트 삭제
+### 15단계: 프로젝트 삭제
 
 마지막으로 `DELETE /api/projects/{projectId}`를 실행합니다.
 
@@ -345,7 +351,7 @@ Swagger의 **System**에서 `GET /api/health`를 실행합니다. 이 API에는 
 
 이어서 `GET /api/projects`를 `ownerId`로 실행했을 때 삭제한 프로젝트가 목록에 없어야 합니다.
 
-### 17단계: 사용자 데이터가 남아 있는지 확인
+### 16단계: 사용자 데이터가 남아 있는지 확인
 
 프로젝트를 삭제해도 사용자 자체가 삭제되는 것은 아닙니다. **Users**에서 `GET /api/users/{userId}`를 두 번 실행합니다.
 
