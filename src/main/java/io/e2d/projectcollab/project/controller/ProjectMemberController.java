@@ -1,3 +1,5 @@
+// 목적: 프로젝트 멤버와 역할 관리 HTTP 요청을 처리하기 위해 만들어진 파일입니다.
+// 역할: 멤버 조회·추가·역할 변경·제거 요청을 서비스 계층에 전달합니다.
 package io.e2d.projectcollab.project.controller;
 
 import io.e2d.projectcollab.project.dto.ProjectDtos.AddProjectMemberRequest;
@@ -23,6 +25,7 @@ import java.util.List;
 
 import static io.e2d.projectcollab.common.web.RequesterHeaders.REQUESTER_ID;
 
+// 역할: 프로젝트 멤버 및 역할 관리 REST API를 제공합니다.
 @Tag(name = "Project Members", description = "프로젝트 멤버와 역할 관리")
 @RestController
 @RequestMapping("/api/projects/{projectId}/members")
@@ -30,10 +33,12 @@ public class ProjectMemberController {
 
     private final ProjectMemberService projectMemberService;
 
+    // 역할: 프로젝트 멤버 서비스 의존성을 주입받아 컨트롤러를 생성합니다.
     public ProjectMemberController(ProjectMemberService projectMemberService) {
         this.projectMemberService = projectMemberService;
     }
 
+    // 역할: 프로젝트에 속한 모든 멤버를 조회합니다.
     @Operation(summary = "프로젝트 멤버 목록 조회")
     @GetMapping
     public List<ProjectMemberResponse> getAll(
@@ -43,6 +48,7 @@ public class ProjectMemberController {
         return projectMemberService.getAll(requesterId, projectId);
     }
 
+    // 역할: 관리 권한을 확인한 뒤 프로젝트에 멤버를 추가합니다.
     @Operation(summary = "프로젝트 멤버 추가")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -54,6 +60,7 @@ public class ProjectMemberController {
         return projectMemberService.add(requesterId, projectId, request);
     }
 
+    // 역할: 관리 권한을 확인한 뒤 프로젝트 멤버의 역할을 변경합니다.
     @Operation(summary = "프로젝트 멤버 역할 변경")
     @PatchMapping("/{userId}")
     public ProjectMemberResponse changeRole(
@@ -65,6 +72,7 @@ public class ProjectMemberController {
         return projectMemberService.changeRole(requesterId, projectId, userId, request);
     }
 
+    // 역할: 관리 권한을 확인한 뒤 프로젝트에서 멤버를 제거합니다.
     @Operation(summary = "프로젝트 멤버 제거")
     @DeleteMapping("/{userId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)

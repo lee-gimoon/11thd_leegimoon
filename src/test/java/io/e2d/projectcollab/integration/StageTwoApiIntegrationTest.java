@@ -1,3 +1,5 @@
+// 목적: 프로젝트 협업 API의 기본 CRUD 흐름과 오류 응답을 통합 검증하기 위해 만들어진 파일입니다.
+// 역할: 사용자·프로젝트·멤버·작업 API와 문서 태그의 2단계 요구사항을 테스트합니다.
 package io.e2d.projectcollab.integration;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -18,6 +20,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+// 역할: MockMvc와 실제 Spring 계층을 연결해 핵심 API 사용 흐름을 검증합니다.
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
@@ -31,6 +34,7 @@ class StageTwoApiIntegrationTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    // 역할: 프로젝트 생성부터 멤버·작업 관리와 프로젝트 삭제까지 기본 CRUD 흐름을 검증합니다.
     @Test
     void supportsBasicProjectMemberAndTaskCrudFlow() throws Exception {
         long ownerId = createUser("소유자", "owner@example.com");
@@ -153,6 +157,7 @@ class StageTwoApiIntegrationTest {
                 .andExpect(jsonPath("$.code").value("PROJECT_NOT_FOUND"));
     }
 
+    // 역할: 이메일·멤버 중복과 잘못된 사용자 입력이 표준 오류로 거부되는지 검증합니다.
     @Test
     void rejectsDuplicateEmailMemberAndInvalidInput() throws Exception {
         long ownerId = createUser("소유자", "unique@example.com");
@@ -195,6 +200,7 @@ class StageTwoApiIntegrationTest {
                 .andExpect(jsonPath("$.code").value("MEMBER_ALREADY_EXISTS"));
     }
 
+    // 역할: 다른 프로젝트 경로로 작업을 조회할 수 없도록 프로젝트 경계가 적용되는지 검증합니다.
     @Test
     void taskLookupUsesProjectBoundary() throws Exception {
         long userId = createUser("사용자", "boundary@example.com");
@@ -221,6 +227,7 @@ class StageTwoApiIntegrationTest {
                 .andExpect(jsonPath("$.code").value("TASK_NOT_FOUND"));
     }
 
+    // 역할: 요청자 헤더가 없을 때 일관된 잘못된 요청 오류가 반환되는지 검증합니다.
     @Test
     void returnsConsistentErrorWhenRequesterHeaderIsMissing() throws Exception {
         mockMvc.perform(get("/api/projects"))
@@ -229,6 +236,7 @@ class StageTwoApiIntegrationTest {
                 .andExpect(jsonPath("$.path").value("/api/projects"));
     }
 
+    // 역할: OpenAPI 태그가 실제 사용자 업무 흐름 순서로 노출되는지 검증합니다.
     @Test
     void exposesOpenApiTagsInUserWorkflowOrder() throws Exception {
         mockMvc.perform(get("/v3/api-docs"))
@@ -240,6 +248,7 @@ class StageTwoApiIntegrationTest {
                 .andExpect(jsonPath("$.tags[4].name").value("System"));
     }
 
+    // 역할: 테스트에 사용할 사용자를 API로 생성하고 식별자를 반환합니다.
     private long createUser(String name, String email) throws Exception {
         String response = mockMvc.perform(post("/api/users")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -257,6 +266,7 @@ class StageTwoApiIntegrationTest {
         return body.get("id").asLong();
     }
 
+    // 역할: 테스트에 사용할 프로젝트를 API로 생성하고 식별자를 반환합니다.
     private long createProject(long requesterId, String name, String description) throws Exception {
         String descriptionJson = description == null
                 ? "null"

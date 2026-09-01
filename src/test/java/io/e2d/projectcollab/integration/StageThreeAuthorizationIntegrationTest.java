@@ -1,3 +1,5 @@
+// 목적: 프로젝트와 작업의 역할 기반 접근 제어 규칙을 통합 검증하기 위해 만들어진 파일입니다.
+// 역할: 비멤버·멤버·관리자·소유자·담당자의 권한과 소유자 유지 규칙을 테스트합니다.
 package io.e2d.projectcollab.integration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -18,6 +20,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+// 역할: 실제 API 호출을 통해 프로젝트 및 작업 권한 정책의 3단계 요구사항을 검증합니다.
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
@@ -31,6 +34,7 @@ class StageThreeAuthorizationIntegrationTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    // 역할: 프로젝트 비멤버가 프로젝트, 멤버와 작업 데이터에 접근할 수 없는지 검증합니다.
     @Test
     void nonMemberCannotAccessAnyProjectData() throws Exception {
         long ownerId = createUser("소유자", "access-owner@example.com");
@@ -75,6 +79,7 @@ class StageThreeAuthorizationIntegrationTest {
                 .andExpect(jsonPath("$.length()").value(0));
     }
 
+    // 역할: 소유자·관리자·일반 멤버에게 서로 다른 프로젝트 관리 권한이 적용되는지 검증합니다.
     @Test
     void ownerAdminAndMemberHaveDifferentProjectPermissions() throws Exception {
         long ownerId = createUser("소유자", "role-owner@example.com");
@@ -122,6 +127,7 @@ class StageThreeAuthorizationIntegrationTest {
                 .andExpect(jsonPath("$.code").value("PROJECT_PERMISSION_DENIED"));
     }
 
+    // 역할: 모든 멤버가 작업을 만들 수 있지만 담당자나 관리자만 수정·삭제할 수 있는지 검증합니다.
     @Test
     void taskCanBeCreatedByAnyMemberButModifiedOnlyByAssigneeOrManager() throws Exception {
         long ownerId = createUser("소유자", "task-owner@example.com");
@@ -164,6 +170,7 @@ class StageThreeAuthorizationIntegrationTest {
                 .andExpect(status().isNoContent());
     }
 
+    // 역할: 작업 담당자는 프로젝트 멤버여야 하며 멤버 제거 시 담당이 해제되는지 검증합니다.
     @Test
     void taskAssigneeMustBeProjectMember() throws Exception {
         long ownerId = createUser("소유자", "assignee-owner@example.com");
@@ -200,6 +207,7 @@ class StageThreeAuthorizationIntegrationTest {
                 .andExpect(jsonPath("$.version").value(1));
     }
 
+    // 역할: 역할 변경이나 멤버 제거 후에도 프로젝트에 소유자가 한 명 이상 남는지 검증합니다.
     @Test
     void projectAlwaysKeepsAtLeastOneOwner() throws Exception {
         long ownerId = createUser("기존 소유자", "owner-rule-owner@example.com");
@@ -245,6 +253,7 @@ class StageThreeAuthorizationIntegrationTest {
                 .andExpect(jsonPath("$[0].role").value("OWNER"));
     }
 
+    // 역할: 권한 테스트에 사용할 사용자를 API로 생성하고 식별자를 반환합니다.
     private long createUser(String name, String email) throws Exception {
         String response = mockMvc.perform(post("/api/users")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -261,6 +270,7 @@ class StageThreeAuthorizationIntegrationTest {
         return objectMapper.readTree(response).get("id").asLong();
     }
 
+    // 역할: 권한 테스트에 사용할 프로젝트를 API로 생성하고 식별자를 반환합니다.
     private long createProject(long requesterId, String name) throws Exception {
         String response = mockMvc.perform(post("/api/projects")
                         .header(REQUESTER_ID, requesterId)
@@ -273,6 +283,7 @@ class StageThreeAuthorizationIntegrationTest {
         return objectMapper.readTree(response).get("id").asLong();
     }
 
+    // 역할: 지정한 역할로 사용자를 프로젝트 멤버에 추가합니다.
     private void addMember(
             long requesterId,
             long projectId,
@@ -286,6 +297,7 @@ class StageThreeAuthorizationIntegrationTest {
                 .andExpect(status().isCreated());
     }
 
+    // 역할: 지정한 담당자로 테스트 작업을 생성하고 작업 식별자를 반환합니다.
     private long createTask(long requesterId, long projectId, Long assigneeId) throws Exception {
         String response = mockMvc.perform(post("/api/projects/{projectId}/tasks", projectId)
                         .header(REQUESTER_ID, requesterId)
@@ -298,6 +310,7 @@ class StageThreeAuthorizationIntegrationTest {
         return objectMapper.readTree(response).get("id").asLong();
     }
 
+    // 역할: 프로젝트 생성·수정 요청에 사용할 JSON 본문을 생성합니다.
     private String projectUpdateBody(String name) {
         return """
                 {
@@ -307,6 +320,7 @@ class StageThreeAuthorizationIntegrationTest {
                 """.formatted(name);
     }
 
+    // 역할: 프로젝트 멤버 추가 요청에 사용할 JSON 본문을 생성합니다.
     private String memberBody(long userId, ProjectRole role) {
         return """
                 {
@@ -316,6 +330,7 @@ class StageThreeAuthorizationIntegrationTest {
                 """.formatted(userId, role.name());
     }
 
+    // 역할: 프로젝트 멤버 역할 변경 요청에 사용할 JSON 본문을 생성합니다.
     private String roleBody(ProjectRole role) {
         return """
                 {
@@ -324,6 +339,7 @@ class StageThreeAuthorizationIntegrationTest {
                 """.formatted(role.name());
     }
 
+    // 역할: 작업 생성 요청에 사용할 JSON 본문을 생성합니다.
     private String taskCreateBody(Long assigneeId) {
         String assigneeValue = assigneeId == null ? "null" : assigneeId.toString();
         return """
@@ -336,6 +352,7 @@ class StageThreeAuthorizationIntegrationTest {
                 """.formatted(assigneeValue);
     }
 
+    // 역할: 작업 수정 요청에 사용할 JSON 본문을 생성합니다.
     private String taskUpdateBody(String title, Long assigneeId) {
         String assigneeValue = assigneeId == null ? "null" : assigneeId.toString();
         return """

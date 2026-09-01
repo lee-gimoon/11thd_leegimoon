@@ -1,3 +1,5 @@
+// 목적: 작업 수정의 낙관적 잠금과 버전 검증을 통합 테스트하기 위해 만들어진 파일입니다.
+// 역할: 순차·동시 수정 충돌, 저장 결과와 버전 입력 제약을 검증합니다.
 package io.e2d.projectcollab.integration;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -24,6 +26,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+// 역할: 실제 HTTP 요청과 병렬 실행을 통해 작업 동시성 제어의 5단계 요구사항을 검증합니다.
 @SpringBootTest
 @AutoConfigureMockMvc
 class StageFiveTaskConcurrencyIntegrationTest {
@@ -36,6 +39,7 @@ class StageFiveTaskConcurrencyIntegrationTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    // 역할: 오래된 버전의 후속 수정이 거부되고 첫 번째 수정 결과가 유지되는지 검증합니다.
     @Test
     void rejectsStaleVersionAndKeepsTheFirstUpdate() throws Exception {
         TestFixture fixture = createFixture("stale");
@@ -77,6 +81,7 @@ class StageFiveTaskConcurrencyIntegrationTest {
                 .andExpect(jsonPath("$.version").value(1));
     }
 
+    // 역할: 같은 버전으로 동시에 수정하면 하나만 성공하고 다른 하나는 충돌하는지 검증합니다.
     @Test
     void onlyOneOfTwoConcurrentUpdatesSucceeds() throws Exception {
         TestFixture fixture = createFixture("concurrent");
@@ -142,6 +147,7 @@ class StageFiveTaskConcurrencyIntegrationTest {
         }
     }
 
+    // 역할: 작업 수정 요청에 0 이상의 버전 값이 반드시 필요한지 검증합니다.
     @Test
     void updateRequiresANonNegativeVersion() throws Exception {
         TestFixture fixture = createFixture("version-validation");
@@ -177,6 +183,7 @@ class StageFiveTaskConcurrencyIntegrationTest {
                 .andExpect(jsonPath("$.fieldErrors.version").exists());
     }
 
+    // 역할: 시작 신호에 맞춰 지정한 요청자로 작업 수정 요청을 보내고 결과를 수집합니다.
     private UpdateResult performConcurrentUpdate(
             TestFixture fixture,
             long requesterId,
@@ -207,6 +214,7 @@ class StageFiveTaskConcurrencyIntegrationTest {
         );
     }
 
+    // 역할: 동시성 테스트에 필요한 소유자, 담당자, 프로젝트와 작업 묶음을 생성합니다.
     private TestFixture createFixture(String prefix) throws Exception {
         long ownerId = createUser("동시성 소유자", prefix + "-owner@example.com");
         long memberId = createUser("동시성 담당자", prefix + "-member@example.com");
@@ -216,6 +224,7 @@ class StageFiveTaskConcurrencyIntegrationTest {
         return new TestFixture(ownerId, memberId, projectId, task.id(), task.version());
     }
 
+    // 역할: 동시성 테스트에 사용할 사용자를 API로 생성하고 식별자를 반환합니다.
     private long createUser(String name, String email) throws Exception {
         String response = mockMvc.perform(post("/api/users")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -232,6 +241,7 @@ class StageFiveTaskConcurrencyIntegrationTest {
         return objectMapper.readTree(response).get("id").asLong();
     }
 
+    // 역할: 동시성 테스트에 사용할 프로젝트를 API로 생성하고 식별자를 반환합니다.
     private long createProject(long ownerId, String name) throws Exception {
         String response = mockMvc.perform(post("/api/projects")
                         .header(REQUESTER_ID, ownerId)
@@ -249,6 +259,7 @@ class StageFiveTaskConcurrencyIntegrationTest {
         return objectMapper.readTree(response).get("id").asLong();
     }
 
+    // 역할: 동시성 테스트의 담당자를 프로젝트 일반 멤버로 추가합니다.
     private void addMember(long ownerId, long projectId, long memberId) throws Exception {
         mockMvc.perform(post("/api/projects/{projectId}/members", projectId)
                         .header(REQUESTER_ID, ownerId)
@@ -262,6 +273,7 @@ class StageFiveTaskConcurrencyIntegrationTest {
                 .andExpect(status().isCreated());
     }
 
+    // 역할: 동시 수정할 작업을 생성하고 식별자와 초기 버전을 반환합니다.
     private CreatedTask createTask(long ownerId, long projectId, long assigneeId) throws Exception {
         String response = mockMvc.perform(post("/api/projects/{projectId}/tasks", projectId)
                         .header(REQUESTER_ID, ownerId)
@@ -283,6 +295,7 @@ class StageFiveTaskConcurrencyIntegrationTest {
         return new CreatedTask(body.get("id").asLong(), body.get("version").asLong());
     }
 
+    // 역할: 제목, 상태, 담당자와 버전이 포함된 작업 수정 JSON 본문을 생성합니다.
     private String taskUpdateBody(
             String title,
             String status,
@@ -300,9 +313,11 @@ class StageFiveTaskConcurrencyIntegrationTest {
                 """.formatted(title, status, assigneeId, version);
     }
 
+    // 역할: 생성된 테스트 작업의 식별자와 초기 버전을 보관합니다.
     private record CreatedTask(long id, long version) {
     }
 
+    // 역할: 동시성 테스트에 필요한 사용자, 프로젝트, 작업과 버전 정보를 보관합니다.
     private record TestFixture(
             long ownerId,
             long memberId,
@@ -312,6 +327,7 @@ class StageFiveTaskConcurrencyIntegrationTest {
     ) {
     }
 
+    // 역할: 동시 수정 요청의 HTTP 상태와 응답 본문을 보관합니다.
     private record UpdateResult(int status, String body) {
     }
 }

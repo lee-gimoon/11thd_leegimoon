@@ -1,3 +1,5 @@
+// 목적: 작업 검색·필터·페이지 조회 기능을 통합 검증하기 위해 만들어진 파일입니다.
+// 역할: 검색 범위, 정렬 안정성, 페이지 메타데이터와 잘못된 조건 처리를 테스트합니다.
 package io.e2d.projectcollab.integration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -18,6 +20,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+// 역할: 실제 API 호출을 통해 작업 검색과 페이지 처리의 4단계 요구사항을 검증합니다.
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
@@ -31,6 +34,7 @@ class StageFourTaskSearchIntegrationTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    // 역할: 제목·설명 검색과 상태 필터가 프로젝트 범위 안에서 함께 적용되는지 검증합니다.
     @Test
     void searchesTitleAndDescriptionAndCombinesStatusWithinProject() throws Exception {
         long ownerId = createUser("검색 사용자", "search-owner@example.com");
@@ -81,6 +85,7 @@ class StageFourTaskSearchIntegrationTest {
                 .andExpect(jsonPath("$.totalElements").value(3));
     }
 
+    // 역할: 작업이 최신순으로 안정되게 나뉘고 정확한 페이지 정보가 반환되는지 검증합니다.
     @Test
     void returnsStableNewestFirstPagesWithMetadata() throws Exception {
         long ownerId = createUser("페이지 사용자", "page-owner@example.com");
@@ -127,6 +132,7 @@ class StageFourTaskSearchIntegrationTest {
                 .andExpect(jsonPath("$.hasPrevious").value(true));
     }
 
+    // 역할: 허용 범위를 벗어난 페이지 값과 알 수 없는 상태 값이 거부되는지 검증합니다.
     @Test
     void rejectsInvalidPaginationAndStatusValues() throws Exception {
         long ownerId = createUser("검증 사용자", "page-validation@example.com");
@@ -143,6 +149,7 @@ class StageFourTaskSearchIntegrationTest {
                 .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
     }
 
+    // 역할: 지정한 페이지 조건으로 요청해 페이지 유효성 오류가 반환되는지 검증합니다.
     private void assertInvalidPagination(
             long requesterId,
             long projectId,
@@ -157,6 +164,7 @@ class StageFourTaskSearchIntegrationTest {
                 .andExpect(jsonPath("$.code").value("INVALID_PAGINATION"));
     }
 
+    // 역할: 검색 테스트에 사용할 사용자를 API로 생성하고 식별자를 반환합니다.
     private long createUser(String name, String email) throws Exception {
         String response = mockMvc.perform(post("/api/users")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -173,6 +181,7 @@ class StageFourTaskSearchIntegrationTest {
         return objectMapper.readTree(response).get("id").asLong();
     }
 
+    // 역할: 검색 테스트에 사용할 프로젝트를 API로 생성하고 식별자를 반환합니다.
     private long createProject(long requesterId, String name) throws Exception {
         String response = mockMvc.perform(post("/api/projects")
                         .header(REQUESTER_ID, requesterId)
@@ -190,6 +199,7 @@ class StageFourTaskSearchIntegrationTest {
         return objectMapper.readTree(response).get("id").asLong();
     }
 
+    // 역할: 검색 조건과 페이지 정렬을 검증할 작업을 생성하고 식별자를 반환합니다.
     private long createTask(
             long requesterId,
             long projectId,

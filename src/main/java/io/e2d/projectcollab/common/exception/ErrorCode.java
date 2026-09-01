@@ -1,7 +1,10 @@
+// 목적: API에서 발생할 수 있는 오류를 한곳에서 정의하기 위해 만들어진 파일입니다.
+// 역할: 오류별 HTTP 상태와 사용자 메시지를 표준화합니다.
 package io.e2d.projectcollab.common.exception;
 
 import org.springframework.http.HttpStatus;
 
+// 역할: 애플리케이션의 오류 유형과 각 오류의 HTTP 응답 정보를 정의합니다.
 public enum ErrorCode {
     INVALID_REQUEST(HttpStatus.BAD_REQUEST, "요청 형식이 올바르지 않습니다."),
     VALIDATION_FAILED(HttpStatus.BAD_REQUEST, "요청값 검증에 실패했습니다."),
@@ -23,15 +26,18 @@ public enum ErrorCode {
     private final HttpStatus status;
     private final String message;
 
+    // 역할: 오류 코드에 HTTP 상태와 사용자 메시지를 연결합니다.
     ErrorCode(HttpStatus status, String message) {
         this.status = status;
         this.message = message;
     }
 
+    // 역할: 오류에 대응하는 HTTP 상태를 반환합니다.
     public HttpStatus getStatus() {
         return status;
     }
 
+    // 역할: 오류를 설명하는 사용자 메시지를 반환합니다.
     public String getMessage() {
         return message;
     }

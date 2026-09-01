@@ -1,3 +1,5 @@
+// 목적: 프로젝트 협업 API의 문서화 설정을 구성하기 위해 만들어진 파일입니다.
+// 역할: OpenAPI 기본 정보와 태그 표시 순서를 등록합니다.
 package io.e2d.projectcollab.common.config;
 
 import io.swagger.v3.oas.models.OpenAPI;
@@ -10,6 +12,7 @@ import org.springframework.context.annotation.Configuration;
 import java.util.Comparator;
 import java.util.List;
 
+// 역할: Swagger 문서에 사용할 OpenAPI 빈과 사용자 지정 정렬 규칙을 구성합니다.
 @Configuration
 public class OpenApiConfig {
 
@@ -21,6 +24,7 @@ public class OpenApiConfig {
             "System"
     );
 
+    // 역할: 프로젝트 협업 API의 제목, 설명, 버전, 태그 정보를 생성합니다.
     @Bean
     public OpenAPI projectCollabOpenApi() {
         return new OpenAPI()
@@ -37,6 +41,7 @@ public class OpenApiConfig {
                 ));
     }
 
+    // 역할: 문서에 표시되는 API 태그를 정의된 업무 순서대로 정렬합니다.
     @Bean
     public OpenApiCustomizer openApiTagOrderCustomizer() {
         return openApi -> {

@@ -1,3 +1,5 @@
+// 목적: 프로젝트 생성·조회·수정·삭제 HTTP 요청을 처리하기 위해 만들어진 파일입니다.
+// 역할: 프로젝트 API 요청을 서비스 계층에 전달하고 결과를 반환합니다.
 package io.e2d.projectcollab.project.controller;
 
 import io.e2d.projectcollab.project.dto.ProjectDtos.CreateProjectRequest;
@@ -23,6 +25,7 @@ import java.util.List;
 
 import static io.e2d.projectcollab.common.web.RequesterHeaders.REQUESTER_ID;
 
+// 역할: 프로젝트 기본 관리 REST API를 제공합니다.
 @Tag(name = "Projects", description = "프로젝트 기본 관리")
 @RestController
 @RequestMapping("/api/projects")
@@ -30,10 +33,12 @@ public class ProjectController {
 
     private final ProjectService projectService;
 
+    // 역할: 프로젝트 서비스 의존성을 주입받아 컨트롤러를 생성합니다.
     public ProjectController(ProjectService projectService) {
         this.projectService = projectService;
     }
 
+    // 역할: 요청자를 소유자로 지정해 새 프로젝트를 생성합니다.
     @Operation(summary = "프로젝트 생성")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -44,6 +49,7 @@ public class ProjectController {
         return projectService.create(requesterId, request);
     }
 
+    // 역할: 요청자가 참여 중인 프로젝트 목록을 조회합니다.
     @Operation(summary = "내 프로젝트 목록 조회")
     @GetMapping
     public List<ProjectResponse> getMyProjects(
@@ -52,6 +58,7 @@ public class ProjectController {
         return projectService.getMyProjects(requesterId);
     }
 
+    // 역할: 접근 권한을 확인한 뒤 지정한 프로젝트를 조회합니다.
     @Operation(summary = "프로젝트 조회")
     @GetMapping("/{projectId}")
     public ProjectResponse get(
@@ -61,6 +68,7 @@ public class ProjectController {
         return projectService.get(requesterId, projectId);
     }
 
+    // 역할: 관리 권한을 확인한 뒤 프로젝트 정보를 수정합니다.
     @Operation(summary = "프로젝트 수정")
     @PutMapping("/{projectId}")
     public ProjectResponse update(
@@ -71,6 +79,7 @@ public class ProjectController {
         return projectService.update(requesterId, projectId, request);
     }
 
+    // 역할: 소유자 권한을 확인한 뒤 프로젝트를 삭제합니다.
     @Operation(summary = "프로젝트 삭제")
     @DeleteMapping("/{projectId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
